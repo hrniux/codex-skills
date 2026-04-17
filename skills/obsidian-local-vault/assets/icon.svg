@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Obsidian local vault">
+  <rect width="64" height="64" rx="14" fill="#141821"/>
+  <path d="M18 18h19l9 9v19H18z" fill="#f5f7fb" opacity=".95"/>
+  <path d="M37 18v10h10" fill="#dde4f2"/>
+  <path d="M24 34h16M24 41h16" stroke="#2d3340" stroke-linecap="round" stroke-width="3"/>
+  <path d="M9 44c0-5.523 4.477-10 10-10h1v20h-1c-5.523 0-10-4.477-10-10Z" fill="#3ecf8e"/>
+  <path d="M17 34h3v20h-3z" fill="#9af0c4"/>
+</svg>

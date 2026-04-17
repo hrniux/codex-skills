@@ -1,0 +1,14 @@
+interface:
+  display_name: "Obsidian Local Vault"
+  short_description: "Safely organize the local Obsidian vault on macOS."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
+  brand_color: "#3ECF8E"
+  default_prompt: "Use $obsidian-local-vault to audit and organize my vault at /Users/bingbing/Documents/Obsidian Vault."
+policy:
+  products:
+    - "chatgpt"
+    - "codex"
+    - "api"
+    - "atlas"
+  allow_implicit_invocation: true
