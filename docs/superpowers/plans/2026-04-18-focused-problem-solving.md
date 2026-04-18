@@ -147,12 +147,7 @@ Expected: the skill stays in the intended lightweight range and avoids becoming 
 - [ ] **Step 2: Validate the manifest parses as YAML**
 
 ```bash
-python3 - <<'PY'
-import pathlib
-import yaml
-path = pathlib.Path("skills/focused-problem-solving/agents/openai.yaml")
-print(yaml.safe_load(path.read_text()))
-PY
+ruby -e 'require "yaml"; p YAML.load_file("skills/focused-problem-solving/agents/openai.yaml")'
 ```
 
 Expected: parsed YAML object prints with no exception.

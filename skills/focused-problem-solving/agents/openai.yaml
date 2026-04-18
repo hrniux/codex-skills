@@ -1,0 +1,14 @@
+interface:
+  display_name: "Focused Problem Solving"
+  short_description: "Solve technical tasks with a narrower search path and smaller context."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
+  brand_color: "#FF7A30"
+  default_prompt: "Use $focused-problem-solving to solve this technical task accurately with minimal unnecessary exploration."
+policy:
+  products:
+    - "chatgpt"
+    - "codex"
+    - "api"
+    - "atlas"
+  allow_implicit_invocation: true
