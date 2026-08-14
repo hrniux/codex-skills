@@ -1,6 +1,6 @@
 ---
 name: obsidian-local-vault
-description: Use when working in the local Obsidian vault on macOS, especially to audit or reorganize notes, rename untitled files, maintain .obsidian settings, manage templates/frontmatter/links, or operate on the default vault at /Users/bingbing/Documents/Obsidian Vault.
+description: Use when working in the local Obsidian vault on macOS, especially to audit or reorganize notes, rename untitled files, maintain .obsidian settings, manage templates/frontmatter/links, or operate on the default vault at ~/Documents/Obsidian Vault.
 ---
 
 # Obsidian Local Vault
@@ -9,14 +9,14 @@ description: Use when working in the local Obsidian vault on macOS, especially t
 
 Use this skill for filesystem-level management of a local Obsidian vault. It is for notes, folders, markdown files, and `.obsidian/*.json` settings, not for clicking the Obsidian GUI.
 
-Default vault path: `/Users/bingbing/Documents/Obsidian Vault`
+Default vault path: `~/Documents/Obsidian Vault` (override with the `OBSIDIAN_VAULT` environment variable).
 
 If the user gives another vault path, use that instead. If no path is given, assume the default path above and verify it exists before editing.
 
 ## Quick Start
 
 1. Work inside the vault root, not inside `.obsidian/`, unless the task is specifically about settings.
-2. Run `scripts/audit_vault.py --vault "/Users/bingbing/Documents/Obsidian Vault"` first to get a JSON summary of:
+2. Run `scripts/audit_vault.py --vault "$HOME/Documents/Obsidian Vault"` first to get a JSON summary of:
    - note counts
    - top-level folders
    - unnamed notes
@@ -89,7 +89,7 @@ Use [references/vault-layout.md](references/vault-layout.md) for the rationale a
 
 ## Examples
 
-- "Organize my Obsidian vault at `/Users/bingbing/Documents/Obsidian Vault`."
+- "Organize my Obsidian vault at `~/Documents/Obsidian Vault`."
 - "Rename untitled notes and update the workspace."
 - "Audit my `.obsidian` settings and make them cleaner."
 - "Separate sensitive notes from general notes in my local vault."

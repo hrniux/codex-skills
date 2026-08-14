@@ -5,10 +5,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from pathlib import Path
 
-DEFAULT_VAULT = Path("/Users/bingbing/Documents/Obsidian Vault")
+DEFAULT_VAULT = Path(
+    os.environ.get("OBSIDIAN_VAULT", str(Path.home() / "Documents" / "Obsidian Vault"))
+)
 UNTITLED_RE = re.compile(r"^未命名(?: \d+)?\.md$")
 WORKSPACE_FILE_RE = re.compile(r'"file"\s*:\s*"([^"]+)"')
 

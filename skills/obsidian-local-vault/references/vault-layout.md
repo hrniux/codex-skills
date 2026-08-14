@@ -2,7 +2,7 @@
 
 ## Default Path
 
-- Primary local vault path: `/Users/bingbing/Documents/Obsidian Vault`
+- Primary local vault path: `~/Documents/Obsidian Vault` (override with the `OBSIDIAN_VAULT` environment variable).
 - If the user explicitly provides another path, prefer the user-provided path.
 
 ## Recommended First-Pass Structure
