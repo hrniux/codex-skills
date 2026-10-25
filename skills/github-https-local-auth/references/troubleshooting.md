@@ -4,24 +4,37 @@ Use this reference only after a GitHub-related command fails and only when the u
 
 ## allowed checks
 
-Run only these read-only commands:
+Run these read-only checks without shell tracing. Replace `origin` if the relevant remote has another name. Raw URLs and helper values remain internal to the checks; only fixed classifications are printed:
 
 ```bash
-git remote -v
-git config --list --show-origin --show-scope
+remote_url=$(git remote get-url origin 2>/dev/null) || remote_url=
+case "$remote_url" in
+  https://*) printf 'origin protocol=https\n' ;;
+  ssh://*|git@*) printf 'origin protocol=ssh\n' ;;
+  '') printf 'origin protocol=unavailable\n' ;;
+  *) printf 'origin protocol=other\n' ;;
+esac
+unset remote_url
+if git config --get-urlmatch credential.helper https://github.com 2>/dev/null | grep -Fx osxkeychain >/dev/null; then
+  printf 'osxkeychain configured=yes\n'
+else
+  printf 'osxkeychain configured=no or unavailable\n'
+fi
 ```
+
+Do not print complete Git configuration, remote URLs, authorization headers, or credential-helper command values. Redact credential values in any error reported to the user.
 
 ## classify the failure
 
 ### case 1: remote uses https
 
-If `git remote -v` shows `https://github.com/...`, keep HTTPS in place.
+If the protocol check prints `origin protocol=https`, keep HTTPS in place.
 
 Do not suggest switching to SSH unless the user explicitly asks.
 
 ### case 2: credential helper present
 
-If Git config shows `credential.helper=osxkeychain`, state that local macOS Git credentials appear to be configured.
+If the helper check prints `osxkeychain configured=yes`, state that Git selects the macOS keychain helper for GitHub.
 
 Do not infer that the stored credential is valid. Only state that the helper is configured.
 

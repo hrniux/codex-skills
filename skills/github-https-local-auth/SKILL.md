@@ -58,23 +58,36 @@ Even in those cases, do not run `gh auth login` unless the user explicitly asks 
 When a GitHub-related command fails:
 
 1. Stop after the failing command.
-2. Report the exact command and the exact error output.
+2. Report the command and error with credential values redacted.
 3. Do not attempt fallback authentication.
 4. Do not switch to SSH.
 5. Do not rewrite remotes.
 6. Do not start any login flow.
 
-If the user wants diagnosis, limit inspection to read-only checks:
+If the user wants diagnosis, limit inspection to read-only checks. Run without shell tracing; keep raw URLs and credential configuration out of output. For the relevant remote (replace `origin` if needed), print only these fixed classifications:
 
 ```bash
-git remote -v
-git config --list --show-origin --show-scope
+remote_url=$(git remote get-url origin 2>/dev/null) || remote_url=
+case "$remote_url" in
+  https://*) printf 'origin protocol=https\n' ;;
+  ssh://*|git@*) printf 'origin protocol=ssh\n' ;;
+  '') printf 'origin protocol=unavailable\n' ;;
+  *) printf 'origin protocol=other\n' ;;
+esac
+unset remote_url
+if git config --get-urlmatch credential.helper https://github.com 2>/dev/null | grep -Fx osxkeychain >/dev/null; then
+  printf 'osxkeychain configured=yes\n'
+else
+  printf 'osxkeychain configured=no or unavailable\n'
+fi
 ```
+
+The configuration check reports only whether Git selects `osxkeychain` for GitHub. It does not validate the stored credential. Do not dump complete Git config, remote URLs, authorization headers, or helper command values.
 
 After those checks, report only:
 
 - whether the remote is HTTPS or SSH
-- whether `credential.helper=osxkeychain` appears in Git config
+- whether the GitHub credential-helper check finds `osxkeychain`
 - whether the failure looks like Git HTTPS authentication, GitHub repository authorization, or a separate `gh` authentication issue
 
 Then recommend the next manual step without executing it unless the user explicitly asks.
