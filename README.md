@@ -29,3 +29,11 @@ cp -R skills/focused-problem-solving ~/.codex/skills/
 For Claude Code, copy into `~/.claude/skills/` instead.
 
 Each skill follows the standard Codex skill structure with `SKILL.md` plus optional `agents/`, `references/`, and `assets/`.
+
+## Validation
+
+Run the dependency-free CLI and diagnostic-recipe regression tests with Python 3.9+ and Git:
+
+```bash
+python3 -B -m unittest discover -s tests -v
+```

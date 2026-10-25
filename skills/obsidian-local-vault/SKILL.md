@@ -16,13 +16,14 @@ If the user gives another vault path, use that instead. If no path is given, ass
 ## Quick Start
 
 1. Work inside the vault root, not inside `.obsidian/`, unless the task is specifically about settings.
-2. Run `scripts/audit_vault.py --vault "$HOME/Documents/Obsidian Vault"` first to get a JSON summary of:
+2. Run `python3 scripts/audit_vault.py` first; it uses `OBSIDIAN_VAULT` or the default path. For a user-selected vault, pass `--vault "/path/to/vault"`. The JSON summary includes:
    - note counts
    - top-level folders
    - unnamed notes
    - missing workspace references
    - config highlights from `.obsidian/app.json`
    - sensitive-note candidates without printing secret values
+   The audit skips note symlinks that resolve outside the vault and rejects settings paths outside it. Its counts cover files inside the selected vault.
 3. Read only the notes and config files needed for the requested cleanup.
 4. Make low-risk structural changes directly when the user asks to organize the vault; preserve content and avoid destructive cleanup.
 5. Re-run the audit after edits and validate modified `.json` files before claiming completion.
@@ -82,7 +83,7 @@ Use [references/vault-layout.md](references/vault-layout.md) for the rationale a
 
 ## Verification
 
-- Re-run `scripts/audit_vault.py` after edits.
+- Re-run `python3 scripts/audit_vault.py` after edits, with the same vault selection.
 - Parse modified `.obsidian/*.json` files with a real JSON parser.
 - Search for stale old note names in markdown links and `workspace.json`.
 - Report the final folder layout and changed notes clearly.

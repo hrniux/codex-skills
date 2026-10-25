@@ -13,7 +13,6 @@ DEFAULT_VAULT = Path(
     os.environ.get("OBSIDIAN_VAULT", str(Path.home() / "Documents" / "Obsidian Vault"))
 )
 UNTITLED_RE = re.compile(r"^未命名(?: \d+)?\.md$")
-WORKSPACE_FILE_RE = re.compile(r'"file"\s*:\s*"([^"]+)"')
 
 SENSITIVE_PATTERNS = {
     "password-assignment": re.compile(r"(password|密码|主密码)\s*[:=]", re.IGNORECASE),
@@ -50,17 +49,37 @@ def rel_path(root: Path, path: Path) -> str:
 
 def safe_read_text(path: Path) -> str:
     try:
-      return path.read_text(encoding="utf-8")
+        return path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
-      return path.read_text(encoding="utf-8", errors="replace")
+        return path.read_text(encoding="utf-8", errors="replace")
 
 
-def first_non_empty_line(text: str) -> str:
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped:
-            return stripped
-    return ""
+def has_first_level_heading(text: str) -> bool:
+    lines = iter(text.splitlines())
+    if text.startswith("---\n"):
+        next(lines, None)
+        for line in lines:
+            if line.strip() in {"---", "..."}:
+                break
+
+    fence = ""
+    for line in lines:
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence:
+            if (
+                marker and marker[1][0] == fence[0]
+                and len(marker[1]) >= len(fence) and not marker[2].strip()
+            ):
+                fence = ""
+        elif marker:
+            fence = marker[1]
+        elif re.match(r"^ {0,3}#(?:\s|$)", line):
+            return True
+    return False
+
+
+def within_vault(root: Path, path: Path) -> bool:
+    return path.resolve().is_relative_to(root)
 
 
 def detect_sensitive_reasons(text: str, path_text: str) -> list[str]:
@@ -73,7 +92,9 @@ def detect_sensitive_reasons(text: str, path_text: str) -> list[str]:
     return sorted(set(reasons))
 
 
-def load_json_if_exists(path: Path) -> dict | None:
+def load_json_if_exists(root: Path, path: Path) -> object:
+    if not within_vault(root, path):
+        raise ValueError(f"settings path is outside vault: {rel_path(root, path)}")
     if not path.exists():
         return None
     return json.loads(safe_read_text(path))
@@ -81,13 +102,27 @@ def load_json_if_exists(path: Path) -> dict | None:
 
 def collect_workspace_refs(root: Path) -> tuple[list[str], list[str]]:
     workspace_path = root / ".obsidian" / "workspace.json"
-    if not workspace_path.exists():
-        return [], []
+    workspace = load_json_if_exists(root, workspace_path)
+    refs: set[str] = set()
 
-    workspace_text = safe_read_text(workspace_path)
-    refs = sorted(set(WORKSPACE_FILE_RE.findall(workspace_text)))
-    missing = [ref for ref in refs if not (root / ref).exists()]
-    return refs, missing
+    def collect(value: object) -> None:
+        if isinstance(value, dict):
+            file_ref = value.get("file")
+            if isinstance(file_ref, str):
+                refs.add(file_ref)
+            for child in value.values():
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+
+    collect(workspace)
+    ordered_refs = sorted(refs)
+    missing = [
+        ref for ref in ordered_refs
+        if not within_vault(root, root / ref) or not (root / ref).is_file()
+    ]
+    return ordered_refs, missing
 
 
 def main() -> None:
@@ -96,8 +131,14 @@ def main() -> None:
 
     if not root.exists():
         raise SystemExit(json.dumps({"ok": False, "error": f"vault not found: {root}"}))
+    if not root.is_dir():
+        raise ValueError(f"vault is not a directory: {root}")
 
-    md_files = sorted(path for path in root.rglob("*.md") if ".obsidian" not in path.parts)
+    md_files = sorted(
+        path for path in root.rglob("*.md")
+        if ".obsidian" not in path.relative_to(root).parts
+        and within_vault(root, path) and path.is_file()
+    )
     unnamed_notes: list[str] = []
     notes_without_heading: list[str] = []
     sensitive_candidates: list[dict[str, object]] = []
@@ -112,15 +153,19 @@ def main() -> None:
         if text.startswith("---\n"):
             frontmatter_count += 1
 
-        first_line = first_non_empty_line(text)
-        if not first_line.startswith("#"):
+        if not has_first_level_heading(text):
             notes_without_heading.append(path_text)
 
         reasons = detect_sensitive_reasons(text, path_text)
         if reasons:
             sensitive_candidates.append({"path": path_text, "reasons": reasons})
 
-    app_json = load_json_if_exists(root / ".obsidian" / "app.json") or {}
+    app_path = root / ".obsidian" / "app.json"
+    app_json = load_json_if_exists(root, app_path)
+    if app_json is None and not app_path.exists():
+        app_json = {}
+    if not isinstance(app_json, dict):
+        raise ValueError(".obsidian/app.json must contain a JSON object")
     workspace_refs, missing_workspace_files = collect_workspace_refs(root)
 
     top_dirs = sorted(
@@ -141,7 +186,7 @@ def main() -> None:
         "top_level_dirs": top_dirs,
         "top_level_md": sorted(
             rel_path(root, path)
-            for path in root.glob("*.md")
+            for path in md_files if path.parent == root
         ),
         "unnamed_notes": unnamed_notes,
         "frontmatter_count": frontmatter_count,
@@ -164,4 +209,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (OSError, ValueError, RuntimeError) as error:
+        raise SystemExit(json.dumps({"ok": False, "error": str(error)})) from None
