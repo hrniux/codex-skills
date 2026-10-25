@@ -82,6 +82,21 @@ def within_vault(root: Path, path: Path) -> bool:
     return path.resolve().is_relative_to(root)
 
 
+def collect_markdown_files(root: Path) -> list[Path]:
+    notes = []
+    for directory, subdirs, filenames in os.walk(root):
+        parent = Path(directory)
+        subdirs[:] = [
+            name for name in subdirs
+            if name != ".obsidian" and not (parent == root and name == ".trash")
+        ]
+        for name in filenames:
+            path = parent / name
+            if name.endswith(".md") and within_vault(root, path) and path.is_file():
+                notes.append(path)
+    return sorted(notes)
+
+
 def detect_sensitive_reasons(text: str, path_text: str) -> list[str]:
     reasons: list[str] = []
     if "敏感" in path_text:
@@ -134,11 +149,7 @@ def main() -> None:
     if not root.is_dir():
         raise ValueError(f"vault is not a directory: {root}")
 
-    md_files = sorted(
-        path for path in root.rglob("*.md")
-        if ".obsidian" not in path.relative_to(root).parts
-        and within_vault(root, path) and path.is_file()
-    )
+    md_files = collect_markdown_files(root)
     unnamed_notes: list[str] = []
     notes_without_heading: list[str] = []
     sensitive_candidates: list[dict[str, object]] = []
@@ -171,7 +182,7 @@ def main() -> None:
     top_dirs = sorted(
         rel_path(root, path)
         for path in root.iterdir()
-        if path.is_dir() and path.name != ".obsidian"
+        if path.is_dir() and path.name not in {".obsidian", ".trash"}
     )
     obsidian_files = sorted(
         rel_path(root, path)

@@ -83,6 +83,37 @@ class AuditVaultTests(unittest.TestCase):
         self.assertEqual(report["md_count"], 1)
         self.assertEqual(report["top_level_md"], [])
 
+    def test_deleted_notes_do_not_affect_live_vault_audit(self):
+        self.write("active.md", "# Active\n")
+        self.write(".trash/未命名.md", "password: SYNTHETIC_DELETED_VALUE\n")
+        self.write(".trash/nested/deleted.md", "Deleted note\n")
+        self.write(".obsidian/internal.md", "Internal data\n")
+        report = self.report()
+        self.assertEqual(report["md_count"], 1)
+        self.assertEqual(report["top_level_dirs"], [])
+        self.assertEqual(report["unnamed_notes"], [])
+        self.assertEqual(report["notes_without_heading_total"], 0)
+        self.assertEqual(report["sensitive_candidate_total"], 0)
+
+    def test_user_hidden_folders_and_nested_trash_remain_live_notes(self):
+        self.write(".md", "# Hidden note filename\n")
+        self.write(".notes/hidden.md", "# Hidden note\n")
+        self.write("projects/.trash/reference.md", "# User folder\n")
+        self.write("projects/.obsidian/internal.md", "Internal data\n")
+        report = self.report()
+        self.assertEqual(report["md_count"], 3)
+        self.assertEqual(report["top_level_md"], [".md"])
+        self.assertEqual(report["top_level_dirs"], [".notes", "projects"])
+
+    def test_workspace_reference_to_deleted_file_is_still_checked_for_existence(self):
+        self.write(".trash/deleted.md", "Deleted note\n")
+        refs = [".trash/deleted.md", ".trash/missing.md"]
+        self.write(".obsidian/workspace.json", json.dumps([{"file": ref} for ref in refs]))
+        report = self.report()
+        self.assertEqual(report["md_count"], 0)
+        self.assertEqual(report["workspace_refs"], refs)
+        self.assertEqual(report["missing_workspace_files"], [".trash/missing.md"])
+
     def test_existing_file_is_not_a_vault(self):
         file_path = self.write("note.md", "# Heading\n")
         self.assert_controlled_error(self.run_audit(vault=file_path))
@@ -120,6 +151,20 @@ class AuditVaultTests(unittest.TestCase):
         note = self.write("nested/note.md", "# Heading\n")
         self.make_symlink(self.root / "linked.md", note)
         self.assertEqual(self.report()["md_count"], 2)
+
+    def test_directory_symlinks_do_not_reintroduce_internal_or_external_notes(self):
+        self.write(".obsidian/internal.md", "Internal data\n")
+        self.write(".trash/deleted.md", "Deleted note\n")
+        outside = Path(self.temporary.name) / "outside"
+        outside.mkdir()
+        (outside / "external.md").write_text("External note\n", encoding="utf-8")
+        for name, target in (
+            ("config-copy", self.root / ".obsidian"),
+            ("trash-copy", self.root / ".trash"),
+            ("external-copy", outside),
+        ):
+            self.make_symlink(self.root / name, target)
+        self.assertEqual(self.report()["md_count"], 0)
 
     def test_external_settings_symlink_is_rejected_without_reading(self):
         outside = Path(self.temporary.name) / "outside.json"

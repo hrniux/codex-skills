@@ -23,7 +23,7 @@ If the user gives another vault path, use that instead. If no path is given, ass
    - missing workspace references
    - config highlights from `.obsidian/app.json`
    - sensitive-note candidates without printing secret values
-   The audit skips note symlinks that resolve outside the vault and rejects settings paths outside it. Its counts cover files inside the selected vault.
+   The audit excludes Obsidian's root `.trash/` deleted notes and `.obsidian/` directories from live note counts and cleanup candidates. It keeps other hidden folders and nested user `.trash/` folders. It does not traverse directory symlinks, skips note symlinks that resolve outside the vault, and rejects settings paths outside it. Workspace references still report whether their target files exist.
 3. Read only the notes and config files needed for the requested cleanup.
 4. Make low-risk structural changes directly when the user asks to organize the vault; preserve content and avoid destructive cleanup.
 5. Re-run the audit after edits and validate modified `.json` files before claiming completion.
